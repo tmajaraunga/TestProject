@@ -5,11 +5,22 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 
-import com.google.api.services.sheets.v4.model.Request;
-import com.google.api.services.sheets.v4.model.Response;
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.RetryPolicy;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,62 +29,73 @@ public class MainActivity extends AppCompatActivity {
 
     Button buttonSendData;
     ProgressDialog progressDialog;
+    EditText editTextX, editTextY;
+    Double x = 0.0;
+    Double y = 0.0;
+    TextView tvStatus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        editTextX = findViewById(R.id.editTextX);
+        editTextY = findViewById(R.id.editTextY);
+        tvStatus = findViewById(R.id.textViewStatus);
+
+        // Set up Button
         buttonSendData = findViewById(R.id.buttonSendData);
-
-        progressDialog = new ProgressDialog(MainActivity.this);
-        progressDialog.setMessage("Loading...");
-
         buttonSendData.setOnClickListener(new View.OnClickListener() {
-                                              @Override
-                                              public void onClick(View view) {
-                                                  // put code here to send to Google Sheets
-                                                  addDataGoogleSheets();
-                                                  progressDialog.show();
-                                              }
-                                          }
-
+              @Override
+              public void onClick(View view) {
+                  // put code here to send to Google Sheets
+                  x =  Double.parseDouble(editTextX.getText().toString());
+                  y =  Double.parseDouble(editTextY.getText().toString());
+                  Log.d("CIS 4444", "Button Pressed with X = "+x+" and Y = "+y);
+                  addDataGoogleSheets();
+              }
+          }
         );
-
     }
 
-    public void addDataGoogleSheets(){
-         String sXvalues = xArray.getText().toString();
-         String sYvalues = yArray.getText().toString();
+    public void addDataGoogleSheets() {
+        // Instantiate the RequestQueue.
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String url = "https://script.google.com/macros/s/AKfycbzAZCSWuRm23F762Ll7vNqyFl3HfvqSVyCgqOz1EIZCbaXpO3YaW8PZLmnl6RBA93vp1w/exec";
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST,"https://script.google.com/macros/s/AKfycbzAZCSWuRm23F762Ll7vNqyFl3HfvqSVyCgqOz1EIZCbaXpO3YaW8PZLmnl6RBA93vp1w/exec", new Response.Listener<String>() {
+        // Request a string response from the provided URL.
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Display the first 500 characters of the response string.
+                        tvStatus.setText("Response is: " + response.substring(0, 500));
+                        Log.d("CIS 4444", "Response Recieved");
+
+                    }
+                }, new Response.ErrorListener() {
             @Override
-            public void onResponse(String response) {
-                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                startActivity(intent);
-                progressDialog.hide();
+            public void onErrorResponse(VolleyError error) {
+                tvStatus.setText("That didn't work!");
+                Log.d("CIS 4444", "Error Recieved: "+error);
             }
-        }, new Response.ErrorListener() {
+        }) {
             @Override
-            public void onErrorResponse(VolleyError error){
-
+            protected Map<String, String> getParams() {
+                Log.d("CIS 4444", "Params being set");
+                Map<String, String> params = new HashMap<>();
+                params.put("action", "addDataGoogleSheets");
+                params.put("vXvalues", x.toString());
+                params.put("vYvalues", y.toString());
+                return params;
             }
-        }){@Override
-            protected Map<String, String> getParams(){
-            Map<String, String> params = new HashMap<>();
-            params.put("action", "addDataGoogleSheets");
-            params.put("vXvalues", sXvalues);
-            params.put("vYvalues", sYvalues);
-
-            return params;
-        }
-
         };
 
-        RetryPolicy retryPolicy = new DefaultRetryPolicy(socketTimeOut,0,DefaultRetryPolicy.DEFAULT_BACKOFF_MULT);
-        stringRequest.setRetryPolicy(retryPolicy);
-
+        // Add the request to the RequestQueue.
+        queue.add(stringRequest);
+        //stringRequest.setRetryPolicy(new DefaultRetryPolicy(20 * 1000,2,DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         requestQueue.add(stringRequest);
     }
+
 }
