@@ -24,6 +24,7 @@ import com.android.volley.toolbox.Volley;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -49,9 +50,9 @@ public class MainActivity extends AppCompatActivity {
               @Override
               public void onClick(View view) {
                   // put code here to send to Google Sheets
-                  x =  Double.parseDouble(editTextX.getText().toString());
-                  y =  Double.parseDouble(editTextY.getText().toString());
-                  Log.d("CIS 4444", "Button Pressed with X = "+x+" and Y = "+y);
+                  x = Double.parseDouble(editTextX.getText().toString());
+                  y = Double.parseDouble(editTextY.getText().toString());
+                  Log.d("CIS 4444", "Button Pressed with X = " + x + " and Y = " + y);
                   addDataGoogleSheets();
               }
           }
@@ -59,41 +60,45 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void addDataGoogleSheets() {
-        // Instantiate the RequestQueue.
-        RequestQueue queue = Volley.newRequestQueue(this);
-        String url = "https://script.google.com/macros/s/AKfycbzAZCSWuRm23F762Ll7vNqyFl3HfvqSVyCgqOz1EIZCbaXpO3YaW8PZLmnl6RBA93vp1w/exec";
+
+        String url = "https://script.google.com/macros/s/AKfycbw53dw4J4jvDAtqLL-sucMzxSz8DdxyGCrdfsSYWQGpRkOUtduFN_fZELhD3Uuj7xABsQ/exec";
 
         // Request a string response from the provided URL.
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        // Display the first 500 characters of the response string.
-                        tvStatus.setText("Response is: " + response.substring(0, 500));
-                        Log.d("CIS 4444", "Response Recieved");
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
+            new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    // Display the first 500 characters of the response string.
+                    tvStatus.setText("Response is: " + response);
+                    Log.d("CIS 4444", "Response Recieved: " + response);
 
-                    }
-                }, new Response.ErrorListener() {
+                }
+            }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 tvStatus.setText("That didn't work!");
-                Log.d("CIS 4444", "Error Recieved: "+error);
+                Log.d("CIS 4444", "Error Recieved: " + error);
+                }
             }
-        }) {
+        )
+            {
             @Override
             protected Map<String, String> getParams() {
                 Log.d("CIS 4444", "Params being set");
-                Map<String, String> params = new HashMap<>();
+                Map<String, String> params = new HashMap<String, String>();
                 params.put("action", "addDataGoogleSheets");
-                params.put("vXvalues", x.toString());
-                params.put("vYvalues", y.toString());
+                params.put("x", x.toString());
+                params.put("y", y.toString());
                 return params;
             }
         };
 
         // Add the request to the RequestQueue.
-        queue.add(stringRequest);
-        //stringRequest.setRetryPolicy(new DefaultRetryPolicy(20 * 1000,2,DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+//        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+//                (int) TimeUnit.SECONDS.toMillis(20),
+//                0,
+//                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+        // Instantiate the RequestQueue.
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         requestQueue.add(stringRequest);
     }
